@@ -332,40 +332,40 @@ public class TransportSearchAction extends HandledTransportAction<SearchRequest,
         }
     }
 
- @Override
-protected void doExecute(Task task, SearchRequest searchRequest, ActionListener<SearchResponse> listener) {
+    @Override
+    protected void doExecute(Task task, SearchRequest searchRequest, ActionListener<SearchResponse> listener) {
 
-    // We only run our check if the user has set a limit (the default is -1, which means disabled).
-    int complexityLimit = this.clusterService.getClusterSettings().get(SearchService.QUERY_COMPLEXITY_LIMIT_SETTING);
+        // We only run our check if the user has set a limit (the default is -1, which means disabled).
+        int complexityLimit = this.clusterService.getClusterSettings().get(SearchService.QUERY_COMPLEXITY_LIMIT_SETTING);
 
-// We only run our check if the user has enabled it (i.e., the limit is not -1).
-if (complexityLimit != -1) {
-    // Create an instance of our analyzer.
-    QueryComplexityAnalyzer analyzer = new QueryComplexityAnalyzer();
-    
-    int score = 0;
-    // Check if the search source exists before trying to access it
-    if (searchRequest.source() != null) {
-        // Correctly get the list of aggregations from the builder
-        List<AggregationBuilder> aggregations = (searchRequest.source().aggregations() != null)
-            // THE FIX IS HERE: We wrap the result in 'new ArrayList<>()'
-            ? new java.util.ArrayList<>(searchRequest.source().aggregations().getAggregatorFactories())
-            : java.util.Collections.emptyList();
+        // We only run our check if the user has enabled it (i.e., the limit is not -1).
+        if (complexityLimit != -1) {
+            // Create an instance of our analyzer.
+            QueryComplexityAnalyzer analyzer = new QueryComplexityAnalyzer();
 
-        score = analyzer.calculate(searchRequest.source().query(), aggregations);
+            int score = 0;
+            // Check if the search source exists before trying to access it
+            if (searchRequest.source() != null) {
+                // Correctly get the list of aggregations from the builder
+                List<AggregationBuilder> aggregations = (searchRequest.source().aggregations() != null)
+                    // THE FIX IS HERE: We wrap the result in 'new ArrayList<>()'
+                    ? new java.util.ArrayList<>(searchRequest.source().aggregations().getAggregatorFactories())
+                    : java.util.Collections.emptyList();
+
+                score = analyzer.calculate(searchRequest.source().query(), aggregations);
+            }
+
+            // This is the circuit breaker!
+            if (score > complexityLimit) {
+                throw new IllegalArgumentException(
+                    "Query rejected! Exceeded complexity limit of [" + complexityLimit + "]. Your query score was [" + score + "]"
+                );
+            }
+        }
+
+        // This is the original line that continues the search process if the check passes.
+        executeRequest((SearchTask) task, searchRequest, new SearchResponseActionListener(listener), AsyncSearchActionProvider::new);
     }
-
-    // This is the circuit breaker!
-    if (score > complexityLimit) {
-        throw new IllegalArgumentException(
-            "Query rejected! Exceeded complexity limit of [" + complexityLimit + "]. Your query score was [" + score + "]"
-        );
-    }
-}
-
-    // This is the original line that continues the search process if the check passes.
-    executeRequest((SearchTask) task, searchRequest, new SearchResponseActionListener(listener), AsyncSearchActionProvider::new);
-}
 
     void executeRequest(
         SearchTask task,

@@ -8,9 +8,9 @@
  */
 package org.elasticsearch.action.search;
 
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.test.ESTestCase;
 
 import static java.util.Collections.emptyList;
 
@@ -18,29 +18,31 @@ public class QueryComplexityAnalyzerTests extends ESTestCase {
 
     public void testSimpleQueryComplexity() {
         QueryComplexityAnalyzer analyzer = new QueryComplexityAnalyzer();
-        
+
         // A very simple query.
         int score = analyzer.calculate(QueryBuilders.termQuery("user", "kimchy"), emptyList());
         // We expect its score to be 1.f
         assertEquals(1, score);
     }
-    
+
     public void testComplexQueryComplexity() {
         QueryComplexityAnalyzer analyzer = new QueryComplexityAnalyzer();
 
         // A more complex, nested query.
         BoolQueryBuilder complexQuery = QueryBuilders.boolQuery()
             .must(QueryBuilders.termQuery("field1", "value1"))
-            .should(QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("field2", "value2"))
-                .must(QueryBuilders.wildcardQuery("field3", "val*")));
-                
+            .should(
+                QueryBuilders.boolQuery()
+                    .must(QueryBuilders.termQuery("field2", "value2"))
+                    .must(QueryBuilders.wildcardQuery("field3", "val*"))
+            );
+
         // Let's calculate what the score should be:
         // bool = 1
-        //   must(term) = 1
-        //   should(bool) = 1
-        //     must(term) = 1
-        //     must(wildcard) = 1 (for the term part) + 20 (for the wildcard penalty)
+        // must(term) = 1
+        // should(bool) = 1
+        // must(term) = 1
+        // must(wildcard) = 1 (for the term part) + 20 (for the wildcard penalty)
         // Total = 1 + 1 + 1 + 1 + 21 = 25
         int score = analyzer.calculate(complexQuery, emptyList());
         assertEquals(25, score);

@@ -8,11 +8,13 @@
  */
 package org.elasticsearch.action.search;
 
-import java.util.List;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.WildcardQueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
+
+import java.util.List;
+
 //his class is our "scorer". It looks at a query, checks for complex parts like bool and wildcard, and assigns points accordingly.
 public class QueryComplexityAnalyzer {
 
@@ -64,9 +66,9 @@ public class QueryComplexityAnalyzer {
         if (aggregation == null) {
             return 0;
         }
-        
+
         int score = 5; // Aggregations are more expensive, so they start at 5 points.
-        
+
         // Add complexity for any sub-aggregations.
         for (AggregationBuilder subAgg : aggregation.getSubAggregations()) {
             score += getAggregationComplexity(subAgg);

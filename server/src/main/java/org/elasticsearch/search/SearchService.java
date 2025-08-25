@@ -172,10 +172,15 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
     private static final Logger logger = LogManager.getLogger(SearchService.class);
 
     // we can have 5 minutes here, since we make sure to clean with search requests and when shard/index closes
-    
-    public static final Setting<Integer> QUERY_COMPLEXITY_LIMIT_SETTING =
-    Setting.intSetting("search.breaker.query_complexity.limit", -1, -1, Setting.Property.Dynamic, Setting.Property.NodeScope);
-    
+
+    public static final Setting<Integer> QUERY_COMPLEXITY_LIMIT_SETTING = Setting.intSetting(
+        "search.breaker.query_complexity.limit",
+        -1,
+        -1,
+        Setting.Property.Dynamic,
+        Setting.Property.NodeScope
+    );
+
     public static final Setting<TimeValue> DEFAULT_KEEPALIVE_SETTING = Setting.positiveTimeSetting(
         "search.default_keep_alive",
         timeValueMinutes(5),
